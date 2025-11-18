@@ -16,5 +16,5 @@ echo "[firewall] start sshd"
 while true; do
     echo "[firewall] Initialize, Reset firewall policy.."
     /usr/local/bin/enable-iptables.sh "$FW_CLIENT_IP"
-    sleep 60
+    sleep 300
 done
