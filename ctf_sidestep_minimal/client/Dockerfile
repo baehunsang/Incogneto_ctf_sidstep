@@ -20,12 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ----------------------------------------
 RUN echo "Temporary rule added: any -> firewall:22 during firewall maintenance - ACL group, All id/pw is admin" \
     > /root/todo.txt 
-
+COPY conf.txt /usr/local/bin/conf.txt
+COPY port.txt /usr/local/bin/port.txt
 COPY start-client.sh /usr/local/bin/start-client.sh
 RUN chmod +x /usr/local/bin/start-client.sh
 WORKDIR /root
 # ----------------------------------------
 # 5) socat 리스너 (엔트리포인트)
 # ----------------------------------------
-EXPOSE 5050
 ENTRYPOINT ["/usr/local/bin/start-client.sh"]

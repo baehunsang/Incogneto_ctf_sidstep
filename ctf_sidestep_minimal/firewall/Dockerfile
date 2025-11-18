@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y iptables iputils-ping openssh-server su
 RUN mkdir /var/run/sshd
 COPY start-firewall.sh /usr/local/bin/start-firewall.sh
 COPY enable-iptables.sh /usr/local/bin/enable-iptables.sh
+COPY conf.txt /usr/local/bin/conf.txt
 RUN chmod +x /usr/local/bin/start-firewall.sh /usr/local/bin/enable-iptables.sh
 # user for SSH from client into firewall
 RUN useradd -m -s /bin/bash admin && echo "admin:admin" | chpasswd &&     mkdir -p /home/admin/.ssh && chown -R admin:admin /home/admin  && usermod -aG sudo admin

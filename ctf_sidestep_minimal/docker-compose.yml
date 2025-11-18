@@ -10,8 +10,6 @@ services:
     networks:
       client_net:
         ipv4_address: 172.28.0.10
-    ports:
-      - "5050:5050"
     tty: true
 
   fw:

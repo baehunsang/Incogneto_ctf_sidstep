@@ -1,13 +1,43 @@
 #!/bin/bash
 set -euo pipefail
 
+# get connection no
+FILE="/home/wrapper/connection_no.txt"
+PORT_FILE="/home/wrapper/ctf_sidestep_minimal/port.txt"
+if [ ! -f "$FILE" ]; then
+    echo "0" > "$FILE"
+fi
+if [ ! -f "$PORT_FILE" ]; then
+    echo "5050" > "$PORT_FILE"
+fi
+
+CURRENT_CON_NO="$(cat "$FILE")"
+
+NEXT_NO="$(expr \( "$CURRENT_CON_NO" + 1 \) % 256)"
+
+echo "$NEXT_NO" > "$FILE"
+
+CLIENT_SUB="172.28.${CURRENT_CON_NO}.0/24"
+SERVER_SUB="172.29.${CURRENT_CON_NO}.0/24"
+CLIENT_IP="172.28.${CURRENT_CON_NO}.10"
+SERVER_IP="172.29.${CURRENT_CON_NO}.10"
+FW_IP_U="172.28.${CURRENT_CON_NO}.2"
+FW_IP_T="172.29.${CURRENT_CON_NO}.2"
+echo "$FW_IP_U" > "/home/wrapper/ctf_sidestep_minimal/client/conf.txt"
+echo "$FW_IP_T" > "/home/wrapper/ctf_sidestep_minimal/server/conf.txt"
+echo "$FW_IP_U" > "/home/wrapper/ctf_sidestep_minimal/firewall/conf.txt"
+
 # read some environment or defaults
 INSTANCE_BASE=/home/wrapper/instances
-PROJECT_SRC=/home/wrapper/ctf_sidstep_minimal
+PROJECT_SRC=/home/wrapper/ctf_sidestep_minimal
 PORT_MIN=40000
 PORT_MAX=41000
-SERVICE_NAME="client"   
-CONTAINER_INTERNAL_PORT=5050
+
+CONTAINER_INTERNAL_PORT=`cat $PORT_FILE`
+echo "$CONTAINER_INTERNAL_PORT" > "/home/wrapper/ctf_sidestep_minimal/client/port.txt"
+NEXT_NO="$(expr \( "$CONTAINER_INTERNAL_PORT" + 1 \))"
+echo "$NEXT_NO" > "$PORT_FILE"
+
 
 timestamp() { date +"%Y%m%dT%H%M%S" ; }
 
@@ -22,18 +52,40 @@ echo "[${ID}] Copying project to instance directory..."
 cp -a "${PROJECT_SRC}/." "${INSTANCE_DIR}/"
 
 echo "[${ID}] Finding Free port"
-HOST_PORT=$(( RANDOM % 30001 + 10000 ))
+HOST_PORT=$CONTAINER_INTERNAL_PORT
 
 echo "[${ID}] Selected host port: ${HOST_PORT}"
 
 # create override
 OVR="${INSTANCE_DIR}/docker-compose.override.yml"
 cat > "${OVR}" <<EOF
-version: "3.8"
 services:
-  ${SERVICE_NAME}:
+  client:
     ports:
       - "${HOST_PORT}:${CONTAINER_INTERNAL_PORT}"
+    networks:
+      client_net:
+        ipv4_address: ${CLIENT_IP}
+  fw:
+    networks:
+      client_net:
+        ipv4_address: ${FW_IP_U}
+      server_net:
+        ipv4_address: ${FW_IP_T}
+  server:
+    networks:
+      server_net:
+        ipv4_address: ${SERVER_IP}
+networks:
+  client_net:
+    ipam:
+      config:
+        - subnet: ${CLIENT_SUB}
+  server_net:
+    ipam:
+      config:
+        - subnet: ${SERVER_SUB}
+
 EOF
 
 echo "[${ID}] Created override file:"
@@ -41,22 +93,11 @@ sed -n '1,200p' "${OVR}"
 
 pushd "${INSTANCE_DIR}" >/dev/null
 echo "[${ID}] Bringing up docker-compose..."
-docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --remove-orphans 
+docker compose -f docker-compose.yml -f docker-compose.override.yml up  -d --remove-orphans > /dev/null
 
-echo "[${ID}] Waiting for service to bind on 127.0.0.1:${HOST_PORT}..."
-end=$((SECONDS+20))
-while true; do
-    if ss -ltn "( sport = :${HOST_PORT} )" >/dev/null 2>&1 ; then
-        break
-    fi
-    if [ $SECONDS -ge $end ]; then
-        echo "[${ID}] Timeout waiting for service to listen on ${HOST_PORT}"
-        break
-    fi
-    sleep 0.5
-done
 
 echo "[${ID}] Proxying STDIO <-> 127.0.0.1:${HOST_PORT}..."
+
 socat -,raw,echo=0 TCP:127.0.0.1:${HOST_PORT}
 
 
