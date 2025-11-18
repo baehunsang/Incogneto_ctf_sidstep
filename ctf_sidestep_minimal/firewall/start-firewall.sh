@@ -3,7 +3,7 @@ set -e
 
 # The firewall has two interfaces: one on client_net (172.28.0.1)
 # and one on server_net (172.29.0.1)
-FW_CLIENT_IP="172.28.0.2"
+FW_CLIENT_IP=`cat /usr/local/bin/conf.txt`
 
 echo "[firewall] enable ip forwarding"
 /sbin/sysctl -w net.ipv4.ip_forward=1

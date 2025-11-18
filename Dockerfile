@@ -36,7 +36,8 @@ RUN mkdir -p /home/wrapper/instances && chown -R root:root /home/wrapper
 
 # 사용자 코드(프로젝트 디렉터리) 전체를 이미지에 복사
 # 빌드 컨텍스트에 ./ctf_sidstep_minimal 이 존재해야 함
-COPY ctf_sidestep_minimal /home/wrapper/ctf_sidstep_minimal
+COPY ctf_sidestep_minimal /home/wrapper/ctf_sidestep_minimal
+COPY connection_no.txt /home/wrapper/connection_no.txt
 
 # 핸들러/엔트리포인트 스크립트
 COPY handle_connection.sh /usr/local/bin/handle_connection.sh
