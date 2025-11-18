@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  wrapper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ctf_wrapper
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "5959:5959"     # 외부 → wrapper 소켓 리슨 포트
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
